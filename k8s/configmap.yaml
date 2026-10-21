@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: demo-backend-config
+  namespace: demospace
+data:
+  DEMO_LOGIN_EMAIL: "demo@example.com"
+  DEMO_LOGIN_PASSWORD: "Demo@123"
