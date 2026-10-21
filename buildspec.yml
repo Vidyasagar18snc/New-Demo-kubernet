@@ -1,0 +1,25 @@
+
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR
+      - aws ecr get-login-password --region ap-southeast-2 | docker login --username AWS --password-stdin 570097404893.dkr.ecr.ap-southeast-2.amazonaws.com
+
+  build:
+    commands:
+      - echo Building backend image
+      - docker build -t demo-login-backend:v1 ./backend
+      - docker tag demo-login-backend:v1 570097404893.dkr.ecr.ap-southeast-2.amazonaws.com/demo-login-backend:v1
+      - echo Building frontend image
+      - docker build -t demo-login-frontend:v1 ./frontend
+      - docker tag demo-login-frontend:v1 570097404893.dkr.ecr.ap-southeast-2.amazonaws.com/demo-login-frontend:v1
+
+  post_build:
+    commands:
+      - echo Pushing backend image
+      - docker push 570097404893.dkr.ecr.ap-southeast-2.amazonaws.com/demo-login-backend:v1
+      - echo Pushing frontend image
+      - docker push 570097404893.dkr.ecr.ap-southeast-2.amazonaws.com/demo-login-frontend:v1
+      - echo Build and push completed
