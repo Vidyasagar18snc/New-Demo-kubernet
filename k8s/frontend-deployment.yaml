@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: YOUR_ECR_FRONTEND_IMAGE
+          image: 570097404893.dkr.ecr.ap-southeast-2.amazonaws.com/demo-login-frontend:v1
           imagePullPolicy: Always
           ports:
             - name: http
