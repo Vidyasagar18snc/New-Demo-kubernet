@@ -18,7 +18,7 @@ pipeline {
         IMAGE_NAME = 'vidyasagar91/keemeds'
         IMAGE_TAG = "v1-${BUILD_NUMBER}"
         DOCKERFILE_BASE = 'backend/Dockerfile'
-        DOCKER_CONTEXT = 'backend'
+        BUILD_CONTEXT = 'backend'
         DOCKER_REGISTRY_CRED_ID = 'vidyasagar91'
 
         SONAR_HOST_URL = 'http://52.66.164.11:9000'
@@ -40,7 +40,7 @@ pipeline {
         stage('Docker Build and Push') {
             steps {
                 script {
-                    def dockerImage = docker.build("${IMAGE_NAME}:${IMAGE_TAG}", "-f ${DOCKERFILE_BASE} ${DOCKER_CONTEXT}")
+                    def dockerImage = docker.build("${IMAGE_NAME}:${IMAGE_TAG}", "-f ${DOCKERFILE_BASE} ${BUILD_CONTEXT}")
 
                     docker.withRegistry('https://index.docker.io/v1/', DOCKER_REGISTRY_CRED_ID) {
                         dockerImage.push()
