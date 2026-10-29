@@ -1,4 +1,3 @@
-
 pipeline {
     agent any
 
@@ -21,7 +20,7 @@ pipeline {
         BUILD_CONTEXT = 'backend'
         DOCKER_REGISTRY_CRED_ID = 'vidyasagar91'
         SONAR_HOST_URL = 'http://52.66.164.11:9000'
-        VALUES_FILE = 'k8s/backend/values.yaml'
+        DEPLOYMENT_FILE = 'k8s/backend-deployment.yaml'
         ARGOCD_HOST = 'a36edd65a80a149b487c1695ba444326-183639487.ap-south-1.elb.amazonaws.com'
     }
 
@@ -61,27 +60,27 @@ pipeline {
         stage('Update Image Tag in Git') {
             steps {
                 script {
-                    def values = readFile(env.VALUES_FILE)
-                    def updatedValues = values.replaceFirst(/(?m)^(\s*tag:\s*).*/, '$1"' + env.IMAGE_TAG + '"')
+                    def deployment = readFile(env.DEPLOYMENT_FILE)
+                    def updatedDeployment = deployment.replaceFirst(/(?m)^(\s*image:\s*).*/, '$1' + env.IMAGE_NAME + ':' + env.IMAGE_TAG)
 
-                    if (values == updatedValues) {
-                        error('No matching tag field found in k8s/backend/values.yaml. Check the Helm values structure.')
+                    if (deployment == updatedDeployment) {
+                        error('No image field found in k8s/backend-deployment.yaml.')
                     }
 
-                    writeFile(file: env.VALUES_FILE, text: updatedValues)
+                    writeFile(file: env.DEPLOYMENT_FILE, text: updatedDeployment)
                 }
 
                 withCredentials([gitUsernamePassword(credentialsId: env.GIT_CREDENTIALS, gitToolName: 'Default')]) {
                     sh 'git config user.email jenkins@ci.local'
                     sh 'git config user.name "Jenkins CI"'
-                    sh 'git add $VALUES_FILE'
+                    sh 'git add $DEPLOYMENT_FILE'
 
                     script {
                         if (sh(script: 'git diff --cached --quiet', returnStatus: true) != 0) {
                             sh 'git commit -m "ci: update backend image tag to $IMAGE_TAG"'
                             sh 'git push origin HEAD:$GIT_BRANCH'
                         } else {
-                            echo 'No image tag changes to commit.'
+                            echo 'No image changes to commit.'
                         }
                     }
                 }
