@@ -7,6 +7,7 @@ pipeline {
 
     options {
         disableConcurrentBuilds()
+        skipDefaultCheckout()
         buildDiscarder(logRotator(daysToKeepStr: '2'))
     }
 
@@ -30,9 +31,12 @@ pipeline {
 
         stage('CHECKOUT') {
             steps {
-                script {
-                    gitcheckout(env.GIT_URL, env.GIT_BRANCH, env.GIT_CREDENTIALS)
-                }
+                checkout([
+                    $class: 'GitSCM',
+                    branches: [[name: "*/${GIT_BRANCH}"]],
+                    gitTool: 'Default',
+                    userRemoteConfigs: [[url: GIT_URL, credentialsId: GIT_CREDENTIALS]]
+                ])
             }
         }
 
