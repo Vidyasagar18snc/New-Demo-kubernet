@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: image: vidyasagar91/keemeds:v1
+          image: vidyasagar91/keemeds:v1-20
           imagePullPolicy: Always
           ports:
             - name: http
