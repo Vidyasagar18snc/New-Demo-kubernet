@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: 570097404893.dkr.ecr.ap-southeast-2.amazonaws.com/demo-login-backend:v1
+          image: image: vidyasagar91/keemeds:v1
           imagePullPolicy: Always
           ports:
             - name: http
