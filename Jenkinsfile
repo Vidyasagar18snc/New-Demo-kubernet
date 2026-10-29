@@ -1,4 +1,3 @@
-
 pipeline {
     agent any
 
@@ -62,7 +61,12 @@ pipeline {
             steps {
                 script {
                     def values = readFile(env.VALUES_FILE)
-                    def updatedValues = values.replaceAll(/(?m)^(\s*tag:\s*).*/, '$1"' + env.IMAGE_TAG + '"')
+                    def updatedValues = values.replaceFirst(/(?m)^(\s*tag:\s*).*/, '$1"' + env.IMAGE_TAG + '"')
+
+                    if (values == updatedValues) {
+                        error('No matching tag field found in k8s/backend/values.yaml. Check the Helm values structure.')
+                    }
+
                     writeFile(file: env.VALUES_FILE, text: updatedValues)
                 }
 
@@ -74,7 +78,7 @@ pipeline {
                     script {
                         if (sh(script: 'git diff --cached --quiet', returnStatus: true) != 0) {
                             sh 'git commit -m "ci: update backend image tag to $IMAGE_TAG"'
-                            sh 'git push $GIT_URL HEAD:$GIT_BRANCH'
+                            sh 'git push origin HEAD:$GIT_BRANCH'
                         } else {
                             echo 'No image tag changes to commit.'
                         }
