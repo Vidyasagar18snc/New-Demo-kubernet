@@ -1,3 +1,4 @@
+
 pipeline {
     agent any
 
@@ -53,7 +54,7 @@ pipeline {
 
         stage('Trivy Scan') {
             steps {
-                sh 'trivy image --severity HIGH,CRITICAL --format template --template @/home/ubuntu/trivy/trivy_html.tpl --output trivy_backend.html $IMAGE_NAME:$IMAGE_TAG'
+                sh 'trivy --config /dev/null image --severity HIGH,CRITICAL --format json --output trivy_backend.json $IMAGE_NAME:$IMAGE_TAG'
             }
         }
 
@@ -100,16 +101,7 @@ pipeline {
 
     post {
         always {
-            publishHTML(target: [
-                allowMissing: true,
-                alwaysLinkToLastBuild: false,
-                keepAll: true,
-                reportDir: '.',
-                reportFiles: 'trivy_backend.html',
-                reportName: 'Backend Trivy',
-                reportTitles: 'Trivy Security Report'
-            ])
-
+            archiveArtifacts artifacts: 'trivy_backend.json', allowEmptyArchive: true
             cleanWs()
         }
 
