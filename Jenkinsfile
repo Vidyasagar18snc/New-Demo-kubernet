@@ -1,4 +1,3 @@
-```groovy
 pipeline {
     agent any
 
@@ -32,33 +31,15 @@ pipeline {
         stage('CHECKOUT') {
             steps {
                 script {
-                    gitcheckout(
-                        env.GIT_URL,
-                        env.GIT_BRANCH,
-                        env.GIT_CREDENTIALS
-                    )
+                    gitcheckout(env.GIT_URL, env.GIT_BRANCH, env.GIT_CREDENTIALS)
                 }
             }
         }
 
         stage('Sonar Code Quality Check') {
             steps {
-                withCredentials([
-                    string(
-                        credentialsId: 'SONAR_TOKEN',
-                        variable: 'SONAR_TOKEN'
-                    )
-                ]) {
-                    sh '''
-                        set -eu
-
-                        sonar-scanner \
-                          -Dsonar.projectKey=Demoproject \
-                          -Dsonar.projectName=Demoproject \
-                          -Dsonar.sources=. \
-                          -Dsonar.host.url="$SONAR_HOST_URL" \
-                          -Dsonar.token="$SONAR_TOKEN"
-                    '''
+                withCredentials([string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')]) {
+                    sh 'sonar-scanner -Dsonar.projectKey=Demoproject -Dsonar.projectName=Demoproject -Dsonar.sources=. -Dsonar.host.url=$SONAR_HOST_URL -Dsonar.token=$SONAR_TOKEN'
                 }
             }
         }
@@ -66,17 +47,9 @@ pipeline {
         stage('Docker Build and Push') {
             steps {
                 script {
-                    sh 'ls -la'
+                    def dockerImage = docker.build("${IMAGE_NAME}:${IMAGE_TAG}", "-f ${DOCKERFILE_BASE} .")
 
-                    def dockerImage = docker.build(
-                        "${IMAGE_NAME}:${IMAGE_TAG}",
-                        "-f ${DOCKERFILE_BASE} ."
-                    )
-
-                    docker.withRegistry(
-                        'https://index.docker.io/v1/',
-                        "${DOCKER_REGISTRY_CRED_ID}"
-                    ) {
+                    docker.withRegistry('https://index.docker.io/v1/', DOCKER_REGISTRY_CRED_ID) {
                         dockerImage.push()
                     }
                 }
@@ -85,78 +58,37 @@ pipeline {
 
         stage('Trivy Scan') {
             steps {
-                sh '''
-                    set -eu
-
-                    trivy image \
-                      --severity HIGH,CRITICAL \
-                      --format template \
-                      --template '@/home/ubuntu/trivy/trivy_html.tpl' \
-                      --output trivy_backend.html \
-                      "$IMAGE_NAME:$IMAGE_TAG"
-                '''
+                sh 'trivy image --severity HIGH,CRITICAL --format template --template @/home/ubuntu/trivy/trivy_html.tpl --output trivy_backend.html $IMAGE_NAME:$IMAGE_TAG'
             }
         }
 
         stage('Update Image Tag in Git') {
             steps {
-                withCredentials([
-                    usernamePassword(
-                        credentialsId: "${GIT_CREDENTIALS}",
-                        usernameVariable: 'GIT_USER',
-                        passwordVariable: 'GIT_PASS'
-                    )
-                ]) {
-                    sh '''
-                        set -eu
+                script {
+                    def values = readFile(env.VALUES_FILE)
+                    writeFile(file: env.VALUES_FILE, text: values.replaceAll(/tag: .*/, "tag: \"${env.IMAGE_TAG}\""))
+                }
 
-                        git config user.email "jenkins@ci.local"
-                        git config user.name "Jenkins CI"
+                withCredentials([gitUsernamePassword(credentialsId: env.GIT_CREDENTIALS, gitToolName: 'Default')]) {
+                    sh 'git config user.email jenkins@ci.local'
+                    sh 'git config user.name "Jenkins CI"'
+                    sh 'git add $VALUES_FILE'
 
-                        sed -i "s|tag: .*|tag: \\"${IMAGE_TAG}\\"|" "$VALUES_FILE"
-
-                        git add "$VALUES_FILE"
-
-                        if ! git diff --cached --quiet; then
-                            git commit -m "ci: update backend image tag to ${IMAGE_TAG}"
-
-                            # Avoid putting the Git token in the remote URL.
-                            GIT_ASKPASS_SCRIPT="$(mktemp)"
-                            export GIT_ASKPASS_SCRIPT
-
-                            cat > "$GIT_ASKPASS_SCRIPT" <<'EOF'
-#!/bin/sh
-case "$1" in
-    *Username*) printf '%s\\n' "$GIT_USER" ;;
-    *Password*) printf '%s\\n' "$GIT_PASS" ;;
-    *) exit 1 ;;
-esac
-EOF
-                            chmod 700 "$GIT_ASKPASS_SCRIPT"
-
-                            export GIT_ASKPASS="$GIT_ASKPASS_SCRIPT"
-                            export GIT_TERMINAL_PROMPT=0
-
-                            git push "$GIT_URL" "HEAD:${GIT_BRANCH}"
-
-                            rm -f "$GIT_ASKPASS_SCRIPT"
-                        else
-                            echo "No image tag changes to commit."
-                        fi
-                    '''
+                    script {
+                        if (sh(script: 'git diff --cached --quiet', returnStatus: true) != 0) {
+                            sh 'git commit -m "ci: update backend image tag to $IMAGE_TAG"'
+                            sh 'git push $GIT_URL HEAD:$GIT_BRANCH'
+                        } else {
+                            echo 'No image tag changes to commit.'
+                        }
+                    }
                 }
             }
         }
 
         stage('Deploy K8S via Argo CD') {
             steps {
-                withCredentials([
-                    usernamePassword(
-                        credentialsId: 'argocd-cli-creds',
-                        usernameVariable: 'ARGO_USER',
-                        passwordVariable: 'ARGO_PASS'
-                    )
-                ]) {
+                withCredentials([usernamePassword(credentialsId: 'argocd-cli-creds', usernameVariable: 'ARGO_USER', passwordVariable: 'ARGO_PASS')]) {
                     script {
                         argoAppSyncWithCLI(
                             appName: 'backend',
@@ -195,4 +127,3 @@ EOF
         }
     }
 }
-```
