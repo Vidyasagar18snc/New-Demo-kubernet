@@ -19,7 +19,7 @@ pipeline {
         DOCKERFILE_BASE = 'backend/Dockerfile'
         BUILD_CONTEXT = 'backend'
         DOCKER_REGISTRY_CRED_ID = 'vidyasagar91'
-        SONAR_HOST_URL = 'http://52.66.164.11:9000'
+        SONAR_HOST_URL = 'http://13.201.67.239:9000'
         DEPLOYMENT_FILE = 'k8s/backend-deployment.yaml'
         ARGOCD_HOST = 'a36edd65a80a149b487c1695ba444326-183639487.ap-south-1.elb.amazonaws.com'
     }
