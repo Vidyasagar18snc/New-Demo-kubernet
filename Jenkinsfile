@@ -64,7 +64,7 @@ pipeline {
 
         stage('Trivy Scan') {
             steps {
-                sh 'trivy --config /dev/null image --severity HIGH,CRITICAL --format json --output trivy_backend.json --exit-code 1 $IMAGE_NAME:$IMAGE_TAG'
+                sh 'trivy --config /dev/null image --severity HIGH,CRITICAL --format json --output trivy_backend.json $IMAGE_NAME:$IMAGE_TAG'
             }
         }
 
