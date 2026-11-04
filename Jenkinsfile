@@ -14,27 +14,32 @@ pipeline {
         GIT_URL = 'https://github.com/Vidyasagar18snc/New-Demo-kubernet.git'
         GIT_BRANCH = 'main'
         GIT_CREDENTIALS = 'Vidyasagar18snc'
+
         IMAGE_NAME = 'vidyasagar91/keemeds'
         IMAGE_TAG = "v1-${BUILD_NUMBER}"
+
         DOCKERFILE_BASE = 'backend/Dockerfile'
         BUILD_CONTEXT = 'backend'
         DOCKER_REGISTRY_CRED_ID = 'vidyasagar91'
+
         SONAR_HOST_URL = 'http://13.201.67.239:9000'
+
         DEPLOYMENT_FILE = 'k8s/backend-deployment.yaml'
         ARGOCD_HOST = 'a36edd65a80a149b487c1695ba444326-183639487.ap-south-1.elb.amazonaws.com'
     }
 
     stages {
+
         stage('CHECKOUT') {
             steps {
                 checkout scm
             }
         }
 
-        stage('Sonar Code Quality check') {
+        stage('Sonar Code Quality Check') {
             steps {
                 withCredentials([string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')]) {
-                    sh 'sonar-scanner -Dsonar.projectKey=Demoproject -Dsonar.projectName=Demoproject -Dsonar.sources=backend -Dsonar.host.url=$SONAR_HOST_URL -Dsonar.token=$SONAR_TOKEN'
+                    sh 'sonar-scanner -Dsonar.projectKey=New-Demo-kubernet -Dsonar.projectName=New-Demo-kubernet -Dsonar.sources=backend -Dsonar.host.url=$SONAR_HOST_URL -Dsonar.token=$SONAR_TOKEN'
                 }
             }
         }
@@ -53,7 +58,7 @@ pipeline {
 
         stage('Trivy Scan') {
             steps {
-                sh 'trivy --config /dev/null image --severity HIGH,CRITICAL --format json --output trivy_backend.json $IMAGE_NAME:$IMAGE_TAG'
+                sh 'trivy --config /dev/null image --severity HIGH,CRITICAL --format json --output trivy_backend.json --exit-code 1 $IMAGE_NAME:$IMAGE_TAG'
             }
         }
 
@@ -61,6 +66,7 @@ pipeline {
             steps {
                 script {
                     def deployment = readFile(env.DEPLOYMENT_FILE)
+
                     def updatedDeployment = deployment.replaceFirst(/(?m)^(\s*image:\s*).*/, '$1' + env.IMAGE_NAME + ':' + env.IMAGE_TAG)
 
                     if (deployment == updatedDeployment) {
