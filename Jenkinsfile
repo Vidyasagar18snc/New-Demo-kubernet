@@ -36,10 +36,16 @@ pipeline {
             }
         }
 
+        stage('Build Backend') {
+            steps {
+                sh 'mvn -f backend/pom.xml clean compile'
+            }
+        }
+
         stage('Sonar Code Quality Check') {
             steps {
                 withCredentials([string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')]) {
-                    sh 'sonar-scanner -Dsonar.projectKey=New-Demo-kubernet -Dsonar.projectName=New-Demo-kubernet -Dsonar.sources=backend -Dsonar.host.url=$SONAR_HOST_URL -Dsonar.token=$SONAR_TOKEN'
+                    sh 'sonar-scanner -Dsonar.projectKey=New-Demo-kubernet -Dsonar.projectName=New-Demo-kubernet -Dsonar.sources=backend/src/main/java -Dsonar.java.binaries=backend/target/classes -Dsonar.host.url=$SONAR_HOST_URL -Dsonar.token=$SONAR_TOKEN'
                 }
             }
         }
